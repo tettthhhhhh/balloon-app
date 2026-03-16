@@ -147,29 +147,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  List<GasCylinder> getProducts() => [
-    GasCylinder(
-      title: "Гелий 10Л (Коричневый)",
-      shortDescription: "Аттестован. Гелий марки 'Б'.",
-      fullDescription: "Стальной баллон 10 литров. ГОСТ 949-73. Идеален для надувания до 100 шаров. Возврат тары обязателен.",
-      priceInt: 3000,
-      imageUrls: ["https://i.postimg.cc/KjRcWtLM/19e10b22-12e6-464b-950b-84ace40f032e.png"],
-    ),
-    GasCylinder(
-      title: "Проф. редуктор",
-      shortDescription: "С нажимным клапаном.",
-      fullDescription: "Обеспечивает мягкую подачу газа. Манометр для контроля давления. Экономия гелия до 20%.",
-      priceInt: 3500,
-      imageUrls: ["https://i.postimg.cc/wvWTFwtj/83c127b5-e691-4d52-8f52-b17e86461725.png"],
-    ),
-    GasCylinder(
-      title: "Набор 'Праздник'",
-      shortDescription: "10л + 50 шаров + Лента.",
-      fullDescription: "Готовое решение: аренда баллона 10л, 50 шаров пастель и лента 100м.",
-      priceInt: 5500,
-      imageUrls: ["https://i.postimg.cc/Bbgy2ztN/Gemini_Generated_Image_agw17tagw17tagw1.png"],
-    ),
-  ];
+
+  // ПРАВКА: Метод getProducts() удален, так как мы теперь используем globalProducts
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +165,8 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: _currentIndex == 0 ? buildStore(getProducts()) : const AssistantPage(),
+      // ПРАВКА: Заменили getProducts() на globalProducts
+      body: _currentIndex == 0 ? buildStore(globalProducts) : const AssistantPage(),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           boxShadow: [BoxShadow(color: Color(0x0D000000), blurRadius: 20)],
@@ -537,7 +517,7 @@ class _CartPageState extends State<CartPage> {
         : Column(children: [
             Expanded(child: ListView.separated(
               padding: const EdgeInsets.all(20),
-              itemCount: cart.length,
+              itemCount: cart.fold(0, (sum, item) => sum + item.quantity),
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (c, i) => Container(
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
@@ -730,7 +710,7 @@ class SbpPaymentPage extends StatelessWidget {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)), 
             onPressed: () { 
-              String orderId = "№${DateTime.now().millisecond}";
+              String orderId = "№${DateTime.now().millisecondsSinceEpoch}";
               int count = cart.length; // Считаем баллоны ПЕРЕД очисткой корзины
               
               totalCylindersInStock -= count; // Списание со склада
@@ -1101,118 +1081,122 @@ class CourierPage extends StatefulWidget {
 }
 
 class _CourierPageState extends State<CourierPage> {
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _bottleIdController = TextEditingController();
-  Order? _foundOrder;
+  final _searchController = TextEditingController();
+  Order? _foundOrder; // Сюда сохраним найденный заказ
 
-  void _findOrder() {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Функция поиска
+  void _searchOrder() {
     setState(() {
-      String query = _searchController.text.trim().replaceAll("№", ""); // Убираем лишние знаки
-      try {
-        // Ищем в глобальной истории заказов
-        _foundOrder = orderHistory.firstWhere(
-          (o) => o.id.replaceAll("№", "") == query
-        );
-      } catch (e) {
-        _foundOrder = null;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Заказ не найден"))
-        );
-      }
+      // Ищем заказ в истории, у которого ID совпадает с введенным текстом
+      _foundOrder = orderHistory.firstWhere(
+        (o) => o.id.replaceAll('№', '') == _searchController.text.replaceAll('№', ''),
+        orElse: () => throw "Не найден",
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Выдача баллонов (Курьер)")),
-      body: Padding(
+      appBar: AppBar(title: const Text("Режим курьера")),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Поле поиска (как на твоем скрине)
+            // Поле поиска
             TextField(
               controller: _searchController,
-              keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: "Введите ID заказа (например: 690)",
-                suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: _findOrder),
-                border: const OutlineInputBorder(),
+                labelText: "Введите номер заказа (только цифры)",
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    try {
+                      _searchOrder();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Заказ не найден"))
+                      );
+                      setState(() => _foundOrder = null);
+                    }
+                  },
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              onSubmitted: (_) => _findOrder(),
+              keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 30),
 
-            if (_foundOrder != null)
+            // Если заказ найден — показываем детали
+            if (_foundOrder != null) ...[
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Заказ ${_foundOrder!.id}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const Divider(),
-                    Text("Клиент: ${_foundOrder!.customerName}"),
-                    Text("Количество: ${_foundOrder!.itemCount} шт."), //
-                    Text(
-                      "СТАТУС: ${_foundOrder!.status}",
-                      style: TextStyle(
-                        color: _foundOrder!.status == "Оплачен" ? Colors.orange : Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text("ДЕТАЛИ ЗАКАЗА ${_foundOrder!.id}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Divider(height: 30),
+                    _infoRow("Клиент:", _foundOrder!.customerName),
+                    _infoRow("Адрес:", _foundOrder!.location),
+                    _infoRow("Товаров:", "${_foundOrder!.itemCount} шт."),
+                    _infoRow("Сумма:", "${_foundOrder!.totalAmount} ₽"),
+                    _infoRow("Статус:", _foundOrder!.status, color: _foundOrder!.status == "Доставлен" ? Colors.green : Colors.orange),
                     const SizedBox(height: 20),
-
-                    // --- ЛОГИКА ВЫДАЧИ ---
-                    if (_foundOrder!.status == "Оплачен") ...[
-                      const Text("Для подтверждения введите номер баллона:", style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _bottleIdController,
-                        decoration: const InputDecoration(
-                          hintText: "№ баллона (например: ГЛ-10-690)",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                    
+                    // Кнопка изменения статуса
+                    if (_foundOrder!.status != "Доставлен")
                       SizedBox(
                         width: double.infinity,
-                        height: 55,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                           onPressed: () {
-                            if (_bottleIdController.text.isNotEmpty) {
-                              setState(() {
-                                // 1. МЕНЯЕМ СТАТУС НА АКТИВЕН
-                                _foundOrder!.status = "Активен";
-                              });
-                              _bottleIdController.clear();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("✅ ЗАКАЗ ВЫДАН!"))
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Ошибка: введите номер баллона!"))
-                              );
-                            }
+                            setState(() {
+                              _foundOrder!.status = "Доставлен"; // Меняем статус
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Статус обновлен: Доставлен"))
+                            );
                           },
-                          child: const Text("ПОДТВЕРДИТЬ И ВЫДАТЬ"),
+                          child: const Text("ОТМЕТИТЬ КАК ДОСТАВЛЕН"),
                         ),
                       ),
-                    ] else if (_foundOrder!.status == "Активен") ...[
-                      const Center(
-                        child: Text("✅ ЭТОТ ЗАКАЗ УЖЕ ВЫДАН", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
                   ],
                 ),
               ),
+            ] else 
+              const Center(child: Text("Введите ID заказа для начала работы", style: TextStyle(color: Colors.grey))),
           ],
         ),
+      ),
+    );
+  }
+
+  // Маленький виджет для строк инфо
+  Widget _infoRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          Expanded(child: Text(value, textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, color: color))),
+        ],
       ),
     );
   }
