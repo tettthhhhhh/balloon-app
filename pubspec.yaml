@@ -1,4 +1,4 @@
-name: flutter_app
+name: my_balloon_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   youtube_player_iframe: ^5.2.2
+  mobile_scanner: ^5.1.0
 
 dev_dependencies:
   flutter_test:
