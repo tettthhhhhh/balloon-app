@@ -10,6 +10,7 @@ import 'screens/auth_screen.dart';
 import 'screens/client_shell.dart';
 import 'screens/courier_screen.dart';
 import 'theme/app_theme.dart';
+import 'widgets/neon_ui.dart';
 
 class GasExpressApp extends StatefulWidget {
   const GasExpressApp({super.key});
@@ -40,15 +41,10 @@ class _GasExpressAppState extends State<GasExpressApp> {
       child: MaterialApp(
         title: 'IndGas Express',
         debugShowCheckedModeBanner: false,
-        scrollBehavior: const MaterialScrollBehavior().copyWith(
-          dragDevices: {
-            PointerDeviceKind.mouse,
-            PointerDeviceKind.touch,
-            PointerDeviceKind.trackpad,
-          },
-        ),
+        scrollBehavior: const AppScrollBehavior(),
         theme: AppTheme.dark,
         builder: (context, child) {
+          final compactLayout = useCompactLayout(context);
           return Stack(
             fit: StackFit.expand,
             children: [
@@ -82,13 +78,15 @@ class _GasExpressAppState extends State<GasExpressApp> {
               ),
               Align(
                 alignment: Alignment.center,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
-                    child: child ?? const SizedBox.shrink(),
-                  ),
-                ),
+                child: compactLayout
+                    ? child ?? const SizedBox.shrink()
+                    : ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: child ?? const SizedBox.shrink(),
+                        ),
+                      ),
               ),
             ],
           );
@@ -199,47 +197,62 @@ class _AnimatedBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (useReducedEffects(context)) {
+      return const _BackdropScene(progress: 0.35);
+    }
+
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(seconds: 6),
       curve: Curves.easeInOut,
       builder: (context, value, child) {
-        return Stack(
-          children: [
-            Positioned(
-              top: -120 + (value * 24),
-              left: -40,
-              child: _GlowBlob(
-                color: AppPalette.rose.withValues(alpha: 0.26),
-                size: 240,
-              ),
-            ),
-            Positioned(
-              right: -110,
-              bottom: -40 + (value * 36),
-              child: _GlowBlob(
-                color: AppPalette.gold.withValues(alpha: 0.18),
-                size: 290,
-              ),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.02),
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.24),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
+        return _BackdropScene(progress: value);
       },
+    );
+  }
+}
+
+class _BackdropScene extends StatelessWidget {
+  const _BackdropScene({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          top: -120 + (progress * 24),
+          left: -40,
+          child: _GlowBlob(
+            color: AppPalette.rose.withValues(alpha: 0.26),
+            size: 240,
+          ),
+        ),
+        Positioned(
+          right: -110,
+          bottom: -40 + (progress * 36),
+          child: _GlowBlob(
+            color: AppPalette.gold.withValues(alpha: 0.18),
+            size: 290,
+          ),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withValues(alpha: 0.02),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.24),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -252,6 +265,21 @@ class _GlowBlob extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (useReducedEffects(context)) {
+      return IgnorePointer(
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [color, color.withValues(alpha: 0)],
+            ),
+          ),
+        ),
+      );
+    }
+
     return IgnorePointer(
       child: ImageFiltered(
         imageFilter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
@@ -262,5 +290,21 @@ class _GlowBlob extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.touch,
+    PointerDeviceKind.trackpad,
+  };
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const ClampingScrollPhysics();
   }
 }

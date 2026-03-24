@@ -150,7 +150,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   const SizedBox(height: 20),
                   AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
+                    duration: motionDuration(
+                      context,
+                      const Duration(milliseconds: 250),
+                      reduced: Duration.zero,
+                    ),
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(28),
@@ -561,60 +565,65 @@ class _CheckoutItemLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final tint = parseHexColor(entry.product.tint);
 
-    return HoverLift(
-      hoverOffset: 5,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          color: Colors.white.withValues(alpha: 0.04),
-          border: Border.all(color: tint.withValues(alpha: 0.14)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: tint.withValues(alpha: 0.14),
+    return RepaintBoundary(
+      child: HoverLift(
+        hoverOffset: 5,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            color: Colors.white.withValues(alpha: 0.04),
+            border: Border.all(color: tint.withValues(alpha: 0.14)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: tint.withValues(alpha: 0.14),
+                ),
+                child: Icon(
+                  entry.product.requiresReturn
+                      ? Icons.local_shipping_outlined
+                      : Icons.inventory_2_outlined,
+                  color: tint,
+                ),
               ),
-              child: Icon(
-                entry.product.requiresReturn
-                    ? Icons.local_shipping_outlined
-                    : Icons.inventory_2_outlined,
-                color: tint,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.product.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.product.title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${entry.quantity} ${entry.product.unitLabel} • ${entry.product.requiresReturn ? 'возвратная тара' : 'продажа'}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.62),
-                      height: 1.35,
+                    const SizedBox(height: 4),
+                    Text(
+                      '${entry.quantity} ${entry.product.unitLabel} • ${entry.product.requiresReturn ? 'возвратная тара' : 'продажа'}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.62),
+                        height: 1.35,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              rubles(entry.subtotal),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Text(
+                rubles(entry.subtotal),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

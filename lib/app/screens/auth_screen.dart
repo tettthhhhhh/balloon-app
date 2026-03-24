@@ -24,6 +24,7 @@ class _AuthScreenState extends State<AuthScreen>
   final _phoneController = TextEditingController();
   final _apiController = TextEditingController();
   late final AnimationController _motionController;
+  bool? _shouldAnimateBackdrop;
 
   _AuthMode _mode = _AuthMode.signIn;
   bool _showApiSettings = false;
@@ -36,7 +37,25 @@ class _AuthScreenState extends State<AuthScreen>
     _motionController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final shouldAnimate = !useReducedEffects(context);
+    if (shouldAnimate == _shouldAnimateBackdrop) {
+      return;
+    }
+
+    _shouldAnimateBackdrop = shouldAnimate;
+    if (shouldAnimate) {
+      _motionController.repeat(reverse: true);
+    } else {
+      _motionController
+        ..stop()
+        ..value = 0.35;
+    }
   }
 
   @override
@@ -92,6 +111,7 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   Widget build(BuildContext context) {
     final app = AppScope.watch(context);
+    final reducedEffects = useReducedEffects(context);
     if (_apiController.text.isEmpty || _apiController.text == _lastApiBaseUrl) {
       _apiController.text = app.apiBaseUrl;
       _lastApiBaseUrl = app.apiBaseUrl;
@@ -101,16 +121,19 @@ class _AuthScreenState extends State<AuthScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          AnimatedBuilder(
-            animation: _motionController,
-            builder: (context, child) {
-              return _AuthBackdrop(progress: _motionController.value);
-            },
-          ),
+          reducedEffects
+              ? const _AuthBackdrop(progress: 0.35)
+              : AnimatedBuilder(
+                  animation: _motionController,
+                  builder: (context, child) {
+                    return _AuthBackdrop(progress: _motionController.value);
+                  },
+                ),
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.all(20),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
@@ -236,7 +259,10 @@ class _AuthScreenState extends State<AuthScreen>
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(32),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              filter: ImageFilter.blur(
+                                sigmaX: reducedEffects ? 8 : 20,
+                                sigmaY: reducedEffects ? 8 : 20,
+                              ),
                               child: Padding(
                                 padding: const EdgeInsets.all(22),
                                 child: Column(
@@ -831,6 +857,17 @@ class _GlowCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (useReducedEffects(context)) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+        ),
+      );
+    }
+
     return ImageFiltered(
       imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
       child: Container(

@@ -1,8 +1,35 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-String rubles(int value) => '$value ₽';
+String rubles(int value) => '$value \u20BD';
+
+bool useCompactLayout(BuildContext context) {
+  final mediaQuery = MediaQuery.maybeOf(context);
+  if (mediaQuery == null) {
+    return false;
+  }
+
+  return mediaQuery.size.width < 700 || mediaQuery.size.shortestSide < 700;
+}
+
+bool useReducedEffects(BuildContext context) {
+  final mediaQuery = MediaQuery.maybeOf(context);
+  if (mediaQuery == null) {
+    return kIsWeb;
+  }
+
+  return mediaQuery.disableAnimations || useCompactLayout(context);
+}
+
+bool useHoverEffects(BuildContext context) => !useCompactLayout(context);
+
+Duration motionDuration(
+  BuildContext context,
+  Duration regular, {
+  Duration reduced = const Duration(milliseconds: 110),
+}) => useReducedEffects(context) ? reduced : regular;
 
 Color parseHexColor(String hex) {
   final clean = hex.replaceAll('#', '');
@@ -24,6 +51,8 @@ class GlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reducedEffects = useReducedEffects(context);
+
     return Container(
       padding: padding,
       decoration: BoxDecoration(
@@ -39,18 +68,26 @@ class GlassPanel extends StatelessWidget {
         border: Border.all(
           color: borderColor ?? AppPalette.peach.withValues(alpha: 0.14),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppPalette.rose.withValues(alpha: 0.08),
-            blurRadius: 36,
-            offset: const Offset(0, 22),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 32,
-            offset: const Offset(0, 24),
-          ),
-        ],
+        boxShadow: reducedEffects
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 16,
+                  offset: const Offset(0, 10),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: AppPalette.rose.withValues(alpha: 0.08),
+                  blurRadius: 36,
+                  offset: const Offset(0, 22),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 32,
+                  offset: const Offset(0, 24),
+                ),
+              ],
       ),
       child: child,
     );
@@ -291,9 +328,15 @@ class _RevealOnMountState extends State<RevealOnMount>
 
   @override
   Widget build(BuildContext context) {
+    if (useReducedEffects(context)) {
+      return RepaintBoundary(child: widget.child);
+    }
+
     return FadeTransition(
       opacity: _fade,
-      child: SlideTransition(position: _slide, child: widget.child),
+      child: RepaintBoundary(
+        child: SlideTransition(position: _slide, child: widget.child),
+      ),
     );
   }
 }
@@ -321,18 +364,26 @@ class _HoverLiftState extends State<HoverLift> {
 
   @override
   Widget build(BuildContext context) {
+    if (!useHoverEffects(context)) {
+      return RepaintBoundary(child: widget.child);
+    }
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedScale(
-        scale: _hovered ? widget.scale : 1,
-        duration: widget.duration,
-        curve: Curves.easeOutCubic,
-        child: AnimatedSlide(
-          offset: _hovered ? Offset(0, -widget.hoverOffset / 100) : Offset.zero,
+      child: RepaintBoundary(
+        child: AnimatedScale(
+          scale: _hovered ? widget.scale : 1,
           duration: widget.duration,
           curve: Curves.easeOutCubic,
-          child: widget.child,
+          child: AnimatedSlide(
+            offset: _hovered
+                ? Offset(0, -widget.hoverOffset / 100)
+                : Offset.zero,
+            duration: widget.duration,
+            curve: Curves.easeOutCubic,
+            child: widget.child,
+          ),
         ),
       ),
     );

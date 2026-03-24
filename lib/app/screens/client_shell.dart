@@ -499,243 +499,256 @@ class _ProductCard extends StatelessWidget {
     final stockDenominator = (product.stock + 4).clamp(1, 24);
     final stockRatio = (product.stock / stockDenominator).clamp(0.0, 1.0);
 
-    return HoverLift(
-      child: GlassPanel(
-        borderColor: tint.withValues(alpha: highlight ? 0.30 : 0.18),
-        padding: const EdgeInsets.all(0),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: highlight
-                  ? [
-                      tint.withValues(alpha: 0.14),
-                      AppPalette.panel.withValues(alpha: 0.92),
-                    ]
-                  : [Colors.white.withValues(alpha: 0.02), Colors.transparent],
+    return RepaintBoundary(
+      child: HoverLift(
+        child: GlassPanel(
+          borderColor: tint.withValues(alpha: highlight ? 0.30 : 0.18),
+          padding: const EdgeInsets.all(0),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: highlight
+                    ? [
+                        tint.withValues(alpha: 0.14),
+                        AppPalette.panel.withValues(alpha: 0.92),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.02),
+                        Colors.transparent,
+                      ],
+              ),
             ),
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      color: tint.withValues(alpha: 0.14),
-                    ),
-                    child: Icon(_categoryIcon(product.category), color: tint),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.title,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          product.subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.66),
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      color: tint.withValues(alpha: 0.14),
-                    ),
-                    child: Text(
-                      rubles(product.price),
-                      style: TextStyle(
-                        color: tint,
-                        fontWeight: FontWeight.w900,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        color: tint.withValues(alpha: 0.14),
                       ),
+                      child: Icon(_categoryIcon(product.category), color: tint),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  StatusBadge(
-                    label: product.requiresReturn
-                        ? 'Возвратная тара'
-                        : 'Продажа',
-                    color: product.requiresReturn
-                        ? AppPalette.rose
-                        : AppPalette.gold,
-                  ),
-                  StatusBadge(
-                    label: _categoryLabel(product.category),
-                    color: tint,
-                  ),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    transitionBuilder: (child, animation) =>
-                        ScaleTransition(scale: animation, child: child),
-                    child: inCartCount > 0
-                        ? StatusBadge(
-                            key: ValueKey<int>(inCartCount),
-                            label: 'В корзине: $inCartCount',
-                            color: AppPalette.mint,
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                product.requiresReturn
-                    ? 'После мероприятия позиция возвращается на склад.'
-                    : 'Продажный товар: остаётся у клиента после получения.',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.64),
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Остаток: ${product.stock} ${product.unitLabel}',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.70),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            minHeight: 8,
-                            value: stockRatio,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.08,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            product.title,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
                             ),
-                            color: tint,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                    child: Text(
-                      product.stock <= 2 ? 'Мало' : 'OK',
-                      style: TextStyle(
-                        color: product.stock <= 2
-                            ? AppPalette.danger
-                            : AppPalette.mint,
-                        fontWeight: FontWeight.w800,
+                          const SizedBox(height: 6),
+                          Text(
+                            product.subtitle,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.66),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    gradient: LinearGradient(
-                      colors: product.stock <= 0
-                          ? [
-                              AppPalette.plum.withValues(alpha: 0.60),
-                              AppPalette.plum.withValues(alpha: 0.36),
-                            ]
-                          : [AppPalette.rose, AppPalette.peach],
-                    ),
-                  ),
-                  child: ElevatedButton.icon(
-                    onPressed: product.stock <= 0
-                        ? null
-                        : () {
-                            app.addToCart(product);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '${product.title} добавлен в корзину.',
-                                ),
-                              ),
-                            );
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                    ),
-                    icon: Icon(
-                      inCartCount > 0
-                          ? Icons.add_circle_outline_rounded
-                          : Icons.add_shopping_cart_rounded,
-                    ),
-                    label: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.16),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        color: tint.withValues(alpha: 0.14),
                       ),
                       child: Text(
-                        product.stock <= 0
-                            ? 'Нет в наличии'
-                            : inCartCount > 0
-                            ? 'Добавить ещё'
-                            : 'Добавить',
-                        key: ValueKey<String>(
+                        rubles(product.price),
+                        style: TextStyle(
+                          color: tint,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    StatusBadge(
+                      label: product.requiresReturn
+                          ? 'Возвратная тара'
+                          : 'Продажа',
+                      color: product.requiresReturn
+                          ? AppPalette.rose
+                          : AppPalette.gold,
+                    ),
+                    StatusBadge(
+                      label: _categoryLabel(product.category),
+                      color: tint,
+                    ),
+                    AnimatedSwitcher(
+                      duration: motionDuration(
+                        context,
+                        const Duration(milliseconds: 220),
+                        reduced: Duration.zero,
+                      ),
+                      transitionBuilder: (child, animation) =>
+                          ScaleTransition(scale: animation, child: child),
+                      child: inCartCount > 0
+                          ? StatusBadge(
+                              key: ValueKey<int>(inCartCount),
+                              label: 'В корзине: $inCartCount',
+                              color: AppPalette.mint,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  product.requiresReturn
+                      ? 'После мероприятия позиция возвращается на склад.'
+                      : 'Продажный товар: остаётся у клиента после получения.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.64),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Остаток: ${product.stock} ${product.unitLabel}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.70),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              minHeight: 8,
+                              value: stockRatio,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.08,
+                              ),
+                              color: tint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                      child: Text(
+                        product.stock <= 2 ? 'Мало' : 'OK',
+                        style: TextStyle(
+                          color: product.stock <= 2
+                              ? AppPalette.danger
+                              : AppPalette.mint,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      gradient: LinearGradient(
+                        colors: product.stock <= 0
+                            ? [
+                                AppPalette.plum.withValues(alpha: 0.60),
+                                AppPalette.plum.withValues(alpha: 0.36),
+                              ]
+                            : [AppPalette.rose, AppPalette.peach],
+                      ),
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: product.stock <= 0
+                          ? null
+                          : () {
+                              app.addToCart(product);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${product.title} добавлен в корзину.',
+                                  ),
+                                ),
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      ),
+                      icon: Icon(
+                        inCartCount > 0
+                            ? Icons.add_circle_outline_rounded
+                            : Icons.add_shopping_cart_rounded,
+                      ),
+                      label: AnimatedSwitcher(
+                        duration: motionDuration(
+                          context,
+                          const Duration(milliseconds: 220),
+                          reduced: Duration.zero,
+                        ),
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.16),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                        child: Text(
                           product.stock <= 0
-                              ? 'out'
+                              ? 'Нет в наличии'
                               : inCartCount > 0
-                              ? 'more'
-                              : 'add',
+                              ? 'Добавить ещё'
+                              : 'Добавить',
+                          key: ValueKey<String>(
+                            product.stock <= 0
+                                ? 'out'
+                                : inCartCount > 0
+                                ? 'more'
+                                : 'add',
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -852,137 +865,143 @@ class _CartLine extends StatelessWidget {
     final app = AppScope.watch(context);
     final tint = parseHexColor(entry.product.tint);
 
-    return HoverLift(
-      hoverOffset: 6,
-      child: GlassPanel(
-        borderColor: tint.withValues(alpha: 0.18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    color: tint.withValues(alpha: 0.14),
+    return RepaintBoundary(
+      child: HoverLift(
+        hoverOffset: 6,
+        child: GlassPanel(
+          borderColor: tint.withValues(alpha: 0.18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      color: tint.withValues(alpha: 0.14),
+                    ),
+                    child: Icon(
+                      _categoryIcon(entry.product.category),
+                      color: tint,
+                    ),
                   ),
-                  child: Icon(
-                    _categoryIcon(entry.product.category),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.product.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          entry.product.subtitle,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.64),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    rubles(entry.subtotal),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  StatusBadge(
+                    label: entry.product.requiresReturn
+                        ? 'Возвратная тара'
+                        : 'Продажный товар',
+                    color: entry.product.requiresReturn
+                        ? AppPalette.rose
+                        : AppPalette.gold,
+                  ),
+                  StatusBadge(
+                    label: '${entry.quantity} ${entry.product.unitLabel}',
                     color: tint,
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.product.title,
+                  StatusBadge(
+                    label: rubles(entry.product.price),
+                    color: AppPalette.mint,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _QuantityButton(
+                    icon: Icons.remove_rounded,
+                    onPressed: () => app.updateCartQuantity(
+                      entry.product.id,
+                      entry.quantity - 1,
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withValues(alpha: 0.05),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.06),
+                      ),
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: motionDuration(
+                        context,
+                        const Duration(milliseconds: 180),
+                        reduced: Duration.zero,
+                      ),
+                      transitionBuilder: (child, animation) =>
+                          ScaleTransition(scale: animation, child: child),
+                      child: Text(
+                        '${entry.quantity}',
+                        key: ValueKey<int>(entry.quantity),
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        entry.product.subtitle,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.64),
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  rubles(entry.subtotal),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                StatusBadge(
-                  label: entry.product.requiresReturn
-                      ? 'Возвратная тара'
-                      : 'Продажный товар',
-                  color: entry.product.requiresReturn
-                      ? AppPalette.rose
-                      : AppPalette.gold,
-                ),
-                StatusBadge(
-                  label: '${entry.quantity} ${entry.product.unitLabel}',
-                  color: tint,
-                ),
-                StatusBadge(
-                  label: rubles(entry.product.price),
-                  color: AppPalette.mint,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _QuantityButton(
-                  icon: Icons.remove_rounded,
-                  onPressed: () => app.updateCartQuantity(
-                    entry.product.id,
-                    entry.quantity - 1,
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 10),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.white.withValues(alpha: 0.05),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
                     ),
                   ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    transitionBuilder: (child, animation) =>
-                        ScaleTransition(scale: animation, child: child),
-                    child: Text(
-                      '${entry.quantity}',
-                      key: ValueKey<int>(entry.quantity),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  _QuantityButton(
+                    icon: Icons.add_rounded,
+                    onPressed: () => app.updateCartQuantity(
+                      entry.product.id,
+                      entry.quantity + 1,
                     ),
                   ),
-                ),
-                _QuantityButton(
-                  icon: Icons.add_rounded,
-                  onPressed: () => app.updateCartQuantity(
-                    entry.product.id,
-                    entry.quantity + 1,
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => app.removeFromCart(entry.product.id),
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    label: const Text('Удалить'),
                   ),
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () => app.removeFromCart(entry.product.id),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  label: const Text('Удалить'),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
