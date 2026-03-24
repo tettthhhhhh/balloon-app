@@ -3,7 +3,7 @@ set -euo pipefail
 
 while read -r oldrev newrev ref; do
   if [[ "$ref" == "refs/heads/main" ]]; then
-    /opt/indgas-express/bin/deploy-main.sh
+    /opt/indgas-express/bin/deploy-main.sh --backend-only
   else
     echo "Skipping $ref. Only refs/heads/main triggers deploy."
   fi

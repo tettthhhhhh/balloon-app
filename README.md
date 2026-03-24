@@ -115,8 +115,10 @@ powershell -ExecutionPolicy Bypass -File C:\project\deploy\windows\deploy-expres
 - проверяешь изменения у себя
 - мержишь `dev` в `main`
 - пушишь `main` в `origin`
+- локально собираешь `build/web`
 - пушишь `main` в `production`
-- bare-репозиторий на сервере получает push в `main`, запускает `post-receive` и вызывает `deploy-main.sh`
+- bare-репозиторий на сервере получает push в `main` и быстро обновляет только backend
+- готовый `build/web` архивом загружается на сервер и публикуется без Flutter-сборки на VPS
 
 Для упрощения этого сценария можно использовать:
 
@@ -129,8 +131,17 @@ powershell -ExecutionPolicy Bypass -File C:\project\deploy\windows\publish-main.
 - проверяет чистоту рабочего дерева
 - запускает `flutter analyze`
 - делает `fast-forward merge` из `dev` в `main`
+- локально собирает `flutter build web --release --dart-define=API_BASE_URL=/api --no-wasm-dry-run`
 - пушит `main` в `origin`
 - пушит `main` в `production`
+- загружает готовый web-бандл на сервер
+- запускает `/opt/indgas-express/bin/deploy-main.sh --web-archive ...`
+
+Почему так лучше:
+
+- VPS больше не тратит 10+ минут на `flutter build web`
+- production-обновления становятся заметно стабильнее на слабом сервере
+- серверу не нужен Flutter SDK для обычного релиза фронта
 
 ## Demo-аккаунты
 
