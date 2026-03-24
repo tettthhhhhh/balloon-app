@@ -83,6 +83,7 @@ if [[ "$MODE" == "with-web" ]]; then
 
   echo "$LOG_PREFIX unpack web archive"
   ts="$(date +%Y%m%d%H%M%S)"
+  tmp_dir="$INCOMING_DIR/web-$ts"
   if [[ -d "$WEB_DIR" && -w "$WEB_RELEASES_DIR" ]]; then
     rm -rf "$WEB_RELEASES_DIR/web-$ts"
     mkdir -p "$WEB_RELEASES_DIR"
@@ -91,9 +92,11 @@ if [[ "$MODE" == "with-web" ]]; then
     echo "$LOG_PREFIX skip backup copy: $WEB_RELEASES_DIR is not writable"
   fi
 
-  rm -rf "$WEB_DIR"
-  mkdir -p "$WEB_DIR"
-  tar -xzf "$WEB_ARCHIVE" -C "$WEB_DIR"
+  rm -rf "$tmp_dir"
+  mkdir -p "$tmp_dir" "$WEB_DIR"
+  tar -xzf "$WEB_ARCHIVE" -C "$tmp_dir"
+  rsync -r --delete --omit-dir-times --no-perms --no-owner --no-group "$tmp_dir/" "$WEB_DIR/"
+  rm -rf "$tmp_dir"
   rm -f "$WEB_ARCHIVE"
 fi
 
