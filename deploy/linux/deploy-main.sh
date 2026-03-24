@@ -20,7 +20,7 @@ wait_for_health() {
   local pause="${3:-1}"
 
   for ((i = 1; i <= attempts; i++)); do
-    if curl -fsS "$url" >/dev/null; then
+    if curl -fsS "$url" >/dev/null 2>&1; then
       return 0
     fi
     sleep "$pause"
@@ -83,10 +83,12 @@ if [[ "$MODE" == "with-web" ]]; then
 
   echo "$LOG_PREFIX unpack web archive"
   ts="$(date +%Y%m%d%H%M%S)"
-  if [[ -d "$WEB_DIR" ]]; then
+  if [[ -d "$WEB_DIR" && -w "$WEB_RELEASES_DIR" ]]; then
     rm -rf "$WEB_RELEASES_DIR/web-$ts"
     mkdir -p "$WEB_RELEASES_DIR"
     cp -a "$WEB_DIR" "$WEB_RELEASES_DIR/web-$ts"
+  elif [[ -d "$WEB_DIR" ]]; then
+    echo "$LOG_PREFIX skip backup copy: $WEB_RELEASES_DIR is not writable"
   fi
 
   rm -rf "$WEB_DIR"
