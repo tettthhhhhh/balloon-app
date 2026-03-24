@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+while read -r oldrev newrev ref; do
+  if [[ "$ref" == "refs/heads/main" ]]; then
+    /opt/indgas-express/bin/deploy-main.sh
+  else
+    echo "Skipping $ref. Only refs/heads/main triggers deploy."
+  fi
+done

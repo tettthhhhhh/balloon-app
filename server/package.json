@@ -1,0 +1,9 @@
+{
+  "name": "gas-express-server",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  }
+}
