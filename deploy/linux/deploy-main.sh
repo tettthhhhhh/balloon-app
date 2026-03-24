@@ -22,13 +22,14 @@ git --work-tree="$SOURCE_DIR" --git-dir="$GIT_DIR" checkout -f main
 export PATH="$FLUTTER_DIR/bin:$PATH"
 
 echo "$LOG_PREFIX flutter build web"
-pushd "$SOURCE_DIR" >/dev/null
+( 
+cd "$SOURCE_DIR"
 flutter pub get
 flutter build web --release --dart-define=API_BASE_URL=/api --no-wasm-dry-run
-popd >/dev/null
+)
 
 echo "$LOG_PREFIX sync backend"
-rsync -a --delete \
+rsync -r --delete --omit-dir-times --no-perms --no-owner --no-group \
   --exclude=".env" \
   --exclude="data/store.json" \
   "$SOURCE_DIR/server/" "$API_DIR/"
@@ -43,7 +44,7 @@ if grep -q '^APP_SECRET=change-me-for-production$' "$API_DIR/.env" 2>/dev/null; 
 fi
 
 echo "$LOG_PREFIX sync web bundle"
-rsync -a --delete "$SOURCE_DIR/build/web/" "$WEB_DIR/"
+rsync -r --delete --omit-dir-times --no-perms --no-owner --no-group "$SOURCE_DIR/build/web/" "$WEB_DIR/"
 
 echo "$LOG_PREFIX restart backend"
 sudo systemctl restart "$SERVICE_NAME"
