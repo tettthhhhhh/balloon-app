@@ -2,7 +2,7 @@ param(
     [string]$ProjectRoot = 'C:\project',
     [string]$SourceBranch = 'dev',
     [string]$TargetBranch = 'main',
-    [string]$Host = '82.148.17.131',
+    [string]$DeployHost = '82.148.17.131',
     [string]$DeployUser = 'gitdeploy',
     [switch]$SkipAnalyze,
     [switch]$SkipWebBuild,
@@ -12,7 +12,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$remote = "$DeployUser@$Host"
+$remote = "$DeployUser@$DeployHost"
 $archivePath = Join-Path $ProjectRoot 'deploy\web-build.tgz'
 $remoteArchiveDir = '/home/gitdeploy/incoming'
 
