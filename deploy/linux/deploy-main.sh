@@ -24,7 +24,7 @@ export PATH="$FLUTTER_DIR/bin:$PATH"
 echo "$LOG_PREFIX flutter build web"
 pushd "$SOURCE_DIR" >/dev/null
 flutter pub get
-flutter build web --release --dart-define=API_BASE_URL=/api
+flutter build web --release --dart-define=API_BASE_URL=/api --no-wasm-dry-run
 popd >/dev/null
 
 echo "$LOG_PREFIX sync backend"
