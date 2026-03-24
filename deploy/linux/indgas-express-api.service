@@ -1,0 +1,16 @@
+[Unit]
+Description=IndGas Express API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/indgas-express/api
+EnvironmentFile=/opt/indgas-express/api/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=3
+User=indgas
+Group=indgas
+
+[Install]
+WantedBy=multi-user.target
