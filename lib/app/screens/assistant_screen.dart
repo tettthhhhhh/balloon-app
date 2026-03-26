@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../app_scope.dart';
 import '../models/app_models.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_feedback.dart';
 import '../widgets/neon_ui.dart';
 import 'video_screen.dart';
 
@@ -69,6 +70,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         unitLabel: 'шт',
         requiresReturn: true,
         featured: false,
+        isVisible: true,
         tint: '#FF7AA8',
       ),
     );
@@ -84,6 +86,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         unitLabel: 'уп',
         requiresReturn: false,
         featured: false,
+        isVisible: true,
         tint: '#FFD36F',
       ),
     );
@@ -99,6 +102,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         unitLabel: 'шт',
         requiresReturn: true,
         featured: false,
+        isVisible: true,
         tint: '#FFB26B',
       ),
     );
@@ -395,37 +399,25 @@ class _AssistantScreenState extends State<AssistantScreen> {
                             onPressed: gasProduct.id.isEmpty
                                 ? null
                                 : () {
-                                    for (
-                                      var i = 0;
-                                      i < recommendedGasUnits;
-                                      i++
-                                    ) {
-                                      app.addToCart(gasProduct);
+                                    app.addToCart(
+                                      gasProduct,
+                                      quantity: recommendedGasUnits,
+                                    );
+                                    if (latexProduct.id.isNotEmpty) {
+                                      app.addToCart(
+                                        latexProduct,
+                                        quantity: recommendedLatexPacks,
+                                      );
                                     }
-                                    for (
-                                      var i = 0;
-                                      i < recommendedLatexPacks;
-                                      i++
-                                    ) {
-                                      if (latexProduct.id.isNotEmpty) {
-                                        app.addToCart(latexProduct);
-                                      }
+                                    if (standProduct.id.isNotEmpty) {
+                                      app.addToCart(
+                                        standProduct,
+                                        quantity: recommendedStandUnits,
+                                      );
                                     }
-                                    for (
-                                      var i = 0;
-                                      i < recommendedStandUnits;
-                                      i++
-                                    ) {
-                                      if (standProduct.id.isNotEmpty) {
-                                        app.addToCart(standProduct);
-                                      }
-                                    }
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Рекомендация добавлена: $recommendedGasUnits баллонов, $recommendedLatexPacks упаковок шаров и $recommendedStandUnits стоек.',
-                                        ),
-                                      ),
+                                    showInfoSnackBar(
+                                      context,
+                                      'Рекомендация добавлена: $recommendedGasUnits баллонов, $recommendedLatexPacks упаковок шаров и $recommendedStandUnits стоек.',
                                     );
                                   },
                             style: ElevatedButton.styleFrom(

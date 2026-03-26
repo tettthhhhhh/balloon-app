@@ -1,13 +1,13 @@
 # INDGAS EXPRESS
 
-Flutter-приложение для заказа гелия, шаров и оборудования с собственным backend без Firebase phone auth.
+Flutter-приложение для заказа гелия, шаров и оборудования с собственным backend на Express + MySQL, без Firebase phone auth.
 
 ## Что уже есть
 
 - тёплый брендовый UI с анимациями для auth, каталога, помощника, корзины и checkout
 - разделение аренды и продажи на уровне карточек, корзины и заказа
 - клиентские, курьерские и админские сценарии
-- локальный backend на Node.js без внешних зависимостей
+- локальный backend на Express + MySQL с миграциями и автосидом из legacy store
 - demo checkout с безопасной маской карты вместо хранения сырых карточных данных
 
 ## Структура
@@ -32,9 +32,13 @@ server/
 
 ## Локальный запуск backend
 
+Перед первым запуском убедись, что локальный MySQL поднят и `server/.env` заполнен.
+
 ```powershell
 cd C:\project\server
-node src/server.js
+npm install
+npm run db:setup
+npm start
 ```
 
 По умолчанию API поднимается на `http://localhost:8787/api`.
@@ -74,7 +78,12 @@ flutter run --dart-define=API_BASE_URL=https://express.indgas.ru/api
 ```text
 PORT=8787
 APP_SECRET=change-me-for-production
-CORS_ORIGIN=https://express.indgas.ru
+CORS_ORIGIN=http://localhost:3000,https://express.indgas.ru
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=indgas_dev
+DB_USER=indgas
+DB_PASSWORD=change-me-local
 ```
 
 Сейчас сервер читает:
@@ -82,6 +91,17 @@ CORS_ORIGIN=https://express.indgas.ru
 - `PORT`
 - `APP_SECRET`
 - `CORS_ORIGIN`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+
+При старте backend:
+
+- применяет SQL-миграции из `server/src/db/migrations`
+- при пустой базе импортирует демо-данные из `server/data/store.json`
+- поднимает тот же API-контракт, который использует Flutter-клиент
 
 ## Production deployment
 
@@ -105,6 +125,38 @@ CORS_ORIGIN=https://express.indgas.ru
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File C:\project\deploy\windows\deploy-express.ps1
+```
+
+## Stub checkout flow
+
+Пока внешние сервисы не подключены, backend уже работает по правильной последовательности статусов:
+
+- `awaiting_signature` после создания заказа
+- `awaiting_payment` после stub-подписания договора
+- `paid` после stub-подтверждения оплаты
+- `active` после выдачи курьером
+- `completed` после возврата возвратной тары
+
+Для этого в MySQL уже есть отдельные таблицы:
+
+- `contracts`
+- `payments`
+- `cylinder_logs`
+
+Stub-маршруты для будущих интеграций:
+
+- `POST /api/orders/:orderId/contracts/sign-stub`
+- `POST /api/orders/:orderId/payments/confirm-stub`
+- `POST /api/webhooks/stub/contracts/signed`
+- `POST /api/webhooks/stub/payments/paid`
+
+Webhook-маршруты защищаются через `APP_SECRET` в заголовке `x-stub-secret`.
+
+Если нужно быстро вернуть локальную dev-базу к исходному demo-состоянию:
+
+```powershell
+cd C:\project\server
+npm run reset
 ```
 
 ## Git auto-deploy flow

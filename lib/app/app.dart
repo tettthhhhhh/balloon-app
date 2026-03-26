@@ -9,6 +9,7 @@ import 'screens/admin_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/client_shell.dart';
 import 'screens/courier_screen.dart';
+import 'screens/verification_screen.dart';
 import 'theme/app_theme.dart';
 import 'widgets/neon_ui.dart';
 
@@ -111,6 +112,9 @@ class _AppRoot extends StatelessWidget {
     final user = controller.currentUser;
     if (user == null) {
       return const AuthScreen();
+    }
+    if (controller.needsVerification) {
+      return const VerificationScreen();
     }
 
     switch (user.role) {
@@ -306,5 +310,14 @@ class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) {
     return const ClampingScrollPhysics();
+  }
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }

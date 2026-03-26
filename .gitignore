@@ -34,6 +34,7 @@ migrate_working_dir/
 .codex-*/
 deploy/*.tgz
 server/data/store.json
+server/.env
 
 # Symbolication related
 app.*.symbols

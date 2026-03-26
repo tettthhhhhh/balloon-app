@@ -12,8 +12,10 @@ class AppController extends ChangeNotifier {
   bool _isBusy = false;
   String? _errorMessage;
   AppUser? _currentUser;
+  VerificationState? _verification;
   AppConfig _config = AppConfig.fallback();
   DashboardStats _dashboard = DashboardStats.empty();
+  AdminRiskOverview _riskOverview = AdminRiskOverview.empty();
   List<Product> _products = const [];
   List<OrderModel> _orders = const [];
   List<CartEntry> _cart = const [];
@@ -22,13 +24,17 @@ class AppController extends ChangeNotifier {
   bool get isBusy => _isBusy;
   String? get errorMessage => _errorMessage;
   AppUser? get currentUser => _currentUser;
+  VerificationState? get verification => _verification;
+  bool get needsVerification => _verification?.required ?? false;
   AppConfig get config => _config;
   DashboardStats get dashboard => _dashboard;
+  AdminRiskOverview get riskOverview => _riskOverview;
   List<Product> get products => List.unmodifiable(_products);
   List<OrderModel> get orders => List.unmodifiable(_orders);
   List<CartEntry> get cart => List.unmodifiable(_cart);
   String get apiBaseUrl => _apiClient.baseUrl;
   UserRole? get currentRole => _currentUser?.role;
+  bool get canCreateOrders => _currentUser?.canCreateOrders ?? true;
 
   int get cartItemsCount => _cart.fold(0, (sum, entry) => sum + entry.quantity);
   int get cartTotal => _cart.fold(0, (sum, entry) => sum + entry.subtotal);
@@ -51,6 +57,8 @@ class AppController extends ChangeNotifier {
   Future<void> bootstrap() async {
     try {
       await refreshPublicData(silent: true);
+    } catch (_) {
+      // Keep fallback public data and let the auth screen surface the error.
     } finally {
       _isBooting = false;
       notifyListeners();
@@ -65,7 +73,7 @@ class AppController extends ChangeNotifier {
     _apiClient.baseUrl = trimmed;
     notifyListeners();
     await refreshPublicData();
-    if (_currentUser != null) {
+    if (_currentUser != null && !needsVerification) {
       await refreshOrders();
     }
   }
@@ -77,16 +85,54 @@ class AppController extends ChangeNotifier {
     }, silent: silent);
   }
 
+  void _applySession(AuthSession session) {
+    _currentUser = session.user;
+    _verification = session.verification.required ? session.verification : null;
+  }
+
+  Future<void> _refreshSessionState() async {
+    if (_currentUser == null) {
+      return;
+    }
+    final session = await _apiClient.getCurrentSession();
+    _applySession(session);
+  }
+
+  Future<void> _refreshPrivateStateForCurrentUser() async {
+    if (_currentUser == null) {
+      _orders = const [];
+      _cart = const [];
+      _dashboard = DashboardStats.empty();
+      _riskOverview = AdminRiskOverview.empty();
+      return;
+    }
+
+    await _refreshSessionState();
+
+    if (needsVerification) {
+      _orders = const [];
+      _cart = const [];
+      _dashboard = DashboardStats.empty();
+      _riskOverview = AdminRiskOverview.empty();
+      return;
+    }
+
+    _orders = await _apiClient.getOrders();
+    if (_currentUser?.role == UserRole.admin) {
+      _dashboard = await _apiClient.getDashboard();
+      _riskOverview = await _apiClient.getRiskOverview();
+    } else {
+      _dashboard = DashboardStats.empty();
+      _riskOverview = AdminRiskOverview.empty();
+    }
+  }
+
   Future<void> signIn({required String login, required String password}) async {
     await _runBusy(() async {
       final session = await _apiClient.signIn(login: login, password: password);
-      _currentUser = session.user;
-      _dashboard = DashboardStats.empty();
+      _applySession(session);
       await refreshPublicData(silent: true);
-      await refreshOrders(silent: true);
-      if (_currentUser?.role == UserRole.admin) {
-        _dashboard = await _apiClient.getDashboard();
-      }
+      await _refreshPrivateStateForCurrentUser();
     });
   }
 
@@ -95,6 +141,7 @@ class AppController extends ChangeNotifier {
     required String password,
     required String fullName,
     required String phone,
+    required String email,
   }) async {
     await _runBusy(() async {
       final session = await _apiClient.register(
@@ -102,45 +149,88 @@ class AppController extends ChangeNotifier {
         password: password,
         fullName: fullName,
         phone: phone,
+        email: email,
       );
-      _currentUser = session.user;
-      _dashboard = DashboardStats.empty();
+      _applySession(session);
       await refreshPublicData(silent: true);
-      _orders = const [];
-      _cart = const [];
+      await _refreshPrivateStateForCurrentUser();
+    });
+  }
+
+  Future<void> resendVerification({VerificationChannel? channel}) async {
+    await _runBusy(() async {
+      final session = await _apiClient.resendVerification(
+        channel: channel?.wireName,
+      );
+      _applySession(session);
+    });
+  }
+
+  Future<void> confirmVerification({
+    required String verificationId,
+    required String code,
+  }) async {
+    await _runBusy(() async {
+      final session = await _apiClient.confirmVerification(
+        verificationId: verificationId,
+        code: code,
+      );
+      _applySession(session);
+      await _refreshPrivateStateForCurrentUser();
     });
   }
 
   Future<void> logout() async {
     _apiClient.clearSession();
     _currentUser = null;
+    _verification = null;
     _orders = const [];
     _dashboard = DashboardStats.empty();
+    _riskOverview = AdminRiskOverview.empty();
     _cart = const [];
     _errorMessage = null;
     notifyListeners();
-    await refreshPublicData(silent: true);
+    try {
+      await refreshPublicData(silent: true);
+    } catch (_) {
+      // Logout should still succeed even if public API is temporarily down.
+    }
+    notifyListeners();
   }
 
   Future<void> refreshOrders({bool silent = false}) async {
-    if (_currentUser == null) return;
+    if (_currentUser == null || needsVerification) return;
     await _runBusy(() async {
+      await _refreshSessionState();
+      if (needsVerification) {
+        _orders = const [];
+        _dashboard = DashboardStats.empty();
+        _riskOverview = AdminRiskOverview.empty();
+        return;
+      }
       _orders = await _apiClient.getOrders();
       if (_currentUser?.role == UserRole.admin) {
         _dashboard = await _apiClient.getDashboard();
+        _riskOverview = await _apiClient.getRiskOverview();
+      } else {
+        _dashboard = DashboardStats.empty();
+        _riskOverview = AdminRiskOverview.empty();
       }
     }, silent: silent);
   }
 
-  void addToCart(Product product) {
+  void addToCart(Product product, {int quantity = 1}) {
+    if (quantity <= 0) {
+      return;
+    }
     final index = _cart.indexWhere((entry) => entry.product.id == product.id);
     if (index == -1) {
-      _cart = [..._cart, CartEntry(product: product)];
+      _cart = [..._cart, CartEntry(product: product, quantity: quantity)];
     } else {
       _cart = [
         for (var i = 0; i < _cart.length; i++)
           if (i == index)
-            _cart[i].copyWith(quantity: _cart[i].quantity + 1)
+            _cart[i].copyWith(quantity: _cart[i].quantity + quantity)
           else
             _cart[i],
       ];
@@ -181,18 +271,23 @@ class AppController extends ChangeNotifier {
   }) async {
     late final OrderModel order;
     await _runBusy(() async {
-      order = await _apiClient.createOrder(
+      final deviceInfo = kIsWeb
+          ? 'flutter-web-checkout'
+          : 'flutter-mobile-checkout';
+      order = await _apiClient.submitCheckout(
         entries: _cart,
         deliveryType: deliveryType,
         location: location,
         paymentMethod: paymentMethod,
         paymentMask: paymentMask,
+        deviceInfo: deviceInfo,
       );
       _cart = const [];
       _products = await _apiClient.getProducts();
       _orders = await _apiClient.getOrders();
       if (_currentUser?.role == UserRole.admin) {
         _dashboard = await _apiClient.getDashboard();
+        _riskOverview = await _apiClient.getRiskOverview();
       }
     });
     return order;
@@ -200,21 +295,27 @@ class AppController extends ChangeNotifier {
 
   Future<void> issueOrder({
     required String orderId,
-    required String cylinderSerial,
+    required List<String> cylinderSerials,
   }) async {
     await _runBusy(() async {
       await _apiClient.issueOrder(
         orderId: orderId,
-        cylinderSerial: cylinderSerial,
+        cylinderSerials: cylinderSerials,
       );
       await refreshOrders(silent: true);
       _products = await _apiClient.getProducts();
     });
   }
 
-  Future<void> completeOrder(String orderId) async {
+  Future<void> completeOrder({
+    required String orderId,
+    List<String> returnedCodes = const [],
+  }) async {
     await _runBusy(() async {
-      await _apiClient.completeOrder(orderId);
+      await _apiClient.completeOrder(
+        orderId: orderId,
+        returnedCodes: returnedCodes,
+      );
       await refreshOrders(silent: true);
       _products = await _apiClient.getProducts();
     });
@@ -239,6 +340,56 @@ class AppController extends ChangeNotifier {
     });
   }
 
+  Future<void> blockUserOrders({
+    required String userId,
+    required String reason,
+    int? blockedDays,
+  }) async {
+    await _runBusy(() async {
+      await _apiClient.blockUserOrders(
+        userId: userId,
+        reason: reason,
+        blockedDays: blockedDays,
+      );
+      await refreshOrders(silent: true);
+    });
+  }
+
+  Future<void> unblockUserOrders({
+    required String userId,
+    String? reason,
+  }) async {
+    await _runBusy(() async {
+      await _apiClient.unblockUserOrders(userId: userId, reason: reason);
+      await refreshOrders(silent: true);
+    });
+  }
+
+  Future<void> forceCompleteOrder({
+    required String orderId,
+    String? reason,
+  }) async {
+    await _runBusy(() async {
+      await _apiClient.forceCompleteOrder(orderId: orderId, reason: reason);
+      await refreshOrders(silent: true);
+      _products = await _apiClient.getProducts();
+    });
+  }
+
+  Future<ContractModel> getOrderContract(String orderId) {
+    return _apiClient.getOrderContract(orderId);
+  }
+
+  Future<ContractAccessModel> issueContractAccessLink(String contractId) {
+    return _apiClient.issueContractAccessLink(contractId);
+  }
+
+  Uri resolveExternalUrl(String path) => _apiClient.resolveExternalUrl(path);
+
+  Future<PaymentModel> getOrderPayment(String orderId) {
+    return _apiClient.getOrderPayment(orderId);
+  }
+
   Future<void> _runBusy(
     Future<void> Function() action, {
     bool silent = false,
@@ -255,7 +406,8 @@ class AppController extends ChangeNotifier {
       _errorMessage = error.message;
       rethrow;
     } catch (error) {
-      _errorMessage = 'Что-то пошло не так: $error';
+      _errorMessage =
+          'Что-то пошло не так. Попробуйте ещё раз или обновите экран.';
       rethrow;
     } finally {
       if (!silent) {
