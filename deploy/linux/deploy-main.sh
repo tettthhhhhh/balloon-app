@@ -75,6 +75,13 @@ if grep -q '^APP_SECRET=change-me-for-production$' "$API_DIR/.env" 2>/dev/null; 
   sed -i "s/^APP_SECRET=.*/APP_SECRET=$secret/" "$API_DIR/.env"
 fi
 
+echo "$LOG_PREFIX install backend deps"
+cd "$API_DIR"
+npm ci --omit=dev
+
+echo "$LOG_PREFIX apply database setup"
+npm run db:setup
+
 if [[ "$MODE" == "with-web" ]]; then
   if [[ ! -f "$WEB_ARCHIVE" ]]; then
     echo "$LOG_PREFIX web archive not found: $WEB_ARCHIVE" >&2
@@ -104,7 +111,7 @@ echo "$LOG_PREFIX restart backend"
 sudo systemctl restart "$SERVICE_NAME"
 
 echo "$LOG_PREFIX health check"
-wait_for_health "http://127.0.0.1:8787/api/health"
-wait_for_health "https://express.indgas.ru/api/health"
+wait_for_health "http://127.0.0.1:8787/api/health" 20 1
+wait_for_health "https://express.indgas.ru/api/health" 20 1
 
 echo "$LOG_PREFIX deploy completed"
